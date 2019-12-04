@@ -1,0 +1,4 @@
+.envrc
+packaged.yaml
+lambda-redirector/lambda-redirector
+.vscode/
