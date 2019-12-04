@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Lamdba Redirector will redirect any path to any domain.
+Globals:
+  Function:
+    Timeout: 5
+
+Parameters:
+
+  DomainName:
+    Type: String
+    Default: git.hein.dev
+
+  DefaultRepo:
+    Type: String
+    Default: " "
+
+  HostedZoneName:
+    Type: String
+
+  CertificateArn:
+    Type: String
+  
+  CodePath:
+    Type: String
+    Default: github.com/christopherhein
+
+  HostedZoneId:
+    Type: String
+    Default: Z2FDTNDATAQYW2
+
+Resources:
+
+  RouterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda-redirector/
+      Handler: lambda-redirector
+      Runtime: go1.x
+      Events:
+        Root:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /{all+}
+            Method: ANY
+      Environment:
+        Variables:
+          DOMAIN: !Ref DomainName
+          CODEPATH: !Ref CodePath 
+          DEFAULTREPO: !Ref DefaultRepo
+
+  APIDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      CertificateArn: !Ref CertificateArn
+      DomainName: !Ref DomainName
+
+  APIBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref APIDomainName
+      RestApiId: !Ref ServerlessRestApi
+      Stage: Prod
+
+  APIDomain:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Ref HostedZoneName
+      RecordSets:
+      - Name: !Sub ${DomainName}.
+        Type: A
+        AliasTarget:
+          DNSName: !GetAtt APIDomainName.DistributionDomainName
+          HostedZoneId: Z2FDTNDATAQYW2 # static ID for CloudFront aliases
+
+
+Outputs:
+
+  RouterAPI:
+    Description: "Go Path Router API"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  RouterFunction:
+    Description: "Go Path Router ARN"
+    Value: !GetAtt RouterFunction.Arn
+
+  RouterIamRole:
+    Description: "Implicit IAM Role created for Go Path Router Function"
+    Value: !GetAtt RouterFunction.Arn
