@@ -29,7 +29,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	additionalPath := ""
 	if len(pathsplit) > 1 {
 		path := []string{"blob/master"}
-		path = append(path, pathsplit[0:]...)
+		path = append(path, pathsplit[1:]...)
 
 		additionalPath = strings.Join(path, "/")
 	}
